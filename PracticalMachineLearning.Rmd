@@ -1,0 +1,165 @@
+---
+title: "Practical Machine Learning Course Project"
+output:
+  html_document:
+    df_print: paged
+---
+## Executive Summary
+
+This is a Practical Machine Learning Coursera assignment involving Human Activity Recognition. With current technologies now able to collect large data regarding personal activity, this assignment tasks is to use the data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants and try to detect which activity they performed by finding paterns from the data. There are 5 types of activity performed by the participants, here are the information regarding the activites.
+
+1. `Class A` : According to the specification.
+
+2. `Class B` : Throwing the elbows to the front.
+
+3. `Class C` : Lifting the dumbbell only halfway.
+
+4. `Class D` : Lowering the dumbbell only halfway.
+
+5. `Class E` : Throwing the hips to the front. 
+
+
+Further about the data and background of this research can be found in this site. [Human Activity Recognition](http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har).
+
+
+## Preparing the Workbench
+
+In this analysis, I'll be using some packages to perform the analysis. Let's load them first.
+```{r, results=FALSE}
+library(ggplot2)
+library(caret)
+library(randomForest)
+```
+
+After that, download the data from the url and put it into your working directory. 
+
+```{r}
+url_Train <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+url_Test <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+if(!file.exists("pml-testing.csv") | !file.exists("pml-training.csv")){
+        download.file(url_Train, destfile = "pml-training.csv")
+        download.file(url_Test, destfile = "pml-testing.csv")
+}
+```
+
+After downloading the data, load it into R using `read.csv` function. 
+
+```{r}
+training <- read.csv("./pml-training.csv")
+testing <- read.csv("./pml-testing.csv")
+```
+
+
+## Processing The Data and Selecting Features
+We begin by looking at the data and try to clean it a bit.
+```{r}
+str(training)
+```
+
+As you can see, there are quite a lot of NA data in the training data. Surely we cannot use this raw data without processing the NA data. 
+
+Also, the first 7 columns wouldn't be too useful since it only contain information about the subject. So lets remove that from our data. To make things simpler, we'll create a new object to store our processed data.
+
+```{r}
+myTrain <- training[, -c(1:7)]
+```
+
+Based on the structure information, notice that the class of each column differs on each column. To make the model training and testing process easier, we should convert each column except the `classe`(outcome variable) to numeric class.
+
+On top of that, we shall collect information about columns that have NA values on it so we can remove the column from our training data. 
+
+```{r, warning=F}
+index = as.numeric()
+
+for (i in 1:152) {
+    myTrain[, i] <- as.numeric(myTrain[,i])
+    
+     if(sum(is.na(myTrain[, i] > 0)))
+          index = c(index, i)
+     
+}
+myTrain <- myTrain[, -index]
+```
+
+Now that we have a much more cleaner data. We shall collect the column names that we'll be using as our predictor. We do this to subset the testing data later, so we have the same columns names on both training and testing data. 
+
+Since the last names on the training data is `classe`, we should remove it from our collection of names since in the testing data, we don't have a `classe` column.
+
+```{r}
+nms <- names(myTrain)
+nms <- nms[1:length(nms)-1]
+```
+
+
+## Creating a Model 
+
+The next step of this analysis is to create a model out of the training data. We will cover some algorithm and see what models give us the best results. 
+
+First we should do a cross validation types of resampling with 10 iterations and also set the metric accuracy.
+
+Also, since we don't have an actual test set to see our model performance, lets create a dummy test data out of our training data. The idea is we train the data using our training data and test it on the dummy test, but all of that are still done in the training data. 
+
+```{r}
+control <- trainControl(method = "cv", number = 10)
+metric <- "Accuracy"
+
+partition <- createDataPartition(y = factor(myTrain$classe), list = F, p = 0.8)
+
+myTrain_train <- myTrain[partition, ] 
+myTrain_test <- myTrain[-partition, ]
+```
+
+Now lets run some models using `classe` as the outcome, and the remaining variables as the predictor. Also set the `trControl` and `metric`  to what we already set above. 
+
+```{r, cache = TRUE}
+# Linear Algorithm
+set.seed(1)
+modellda <- train(factor(classe) ~ ., data = myTrain_train, method = "lda", metric = metric, trControl = control)
+
+# Non-linear Algorithm 
+set.seed(1)
+modelRPart <- train(factor(classe) ~ ., data = myTrain_train, method = "rpart", metric = metric, trControl = control)
+
+# Random Forests
+set.seed(1)
+modelRF <- randomForest(formula =factor(classe) ~ ., data = myTrain_train)
+
+# K-Nearest Neighbors
+set.seed(1)
+modelKNN <- train(factor(classe) ~ ., data = myTrain_train, method = "knn", metric = metric, trControl = control)
+```
+
+Now that we have all the models ready, we should do an accuracy measure. The idea is to use the model and predict using training data and then compare the results to the actual `classe` variable in the training data. This way we can see which model predict better. We do this by taking the total right guesses and average them, and then compare them for each model. 
+
+
+```{r, cache = TRUE}
+correctTrain <- as.factor(myTrain_test$classe)
+predictLda <- predict(modellda, myTrain_test)
+predictRpart <- predict(modelRPart, myTrain_test)
+predictRf <- predict(modelRF, myTrain_test)
+predictKnn <- predict(modelKNN, myTrain_test)
+```
+
+Now lets summarize the results in a data frame. 
+```{r}
+results <-  data.frame(model = c("lda", "rpart", "rf", "knn"), Accuracy = c(mean(correctTrain == predictLda), mean(correctTrain == predictRpart),mean(correctTrain == predictRf), mean(correctTrain == predictKnn)))
+
+print(results)
+```
+
+Based on our analysis, Random Forests seems to give the best accuracy, which guesses at an almost 100% rate accuracy, followed by K-nearest neighbors classifier. Out of the list of options, we can choose random forests approach because of the high accuracy.
+
+
+Now lets apply the prediction model to our REAL test data with 20 observations and check the results. Don't forget the `nms` variable we created earlier and apply it to our test data, so that it have the same column name as the training data. 
+
+```{r}
+myTest <- testing[, nms]
+hasil <- predict(modelRF, myTest)
+print(hasil)
+```
+
+After applying to the coursera quiz section, I achieved 100% correct answer using `modelRF`, which is a good sign.
+
+
+
