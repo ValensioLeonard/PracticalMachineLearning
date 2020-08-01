@@ -157,11 +157,10 @@ Now lets apply the prediction model to our REAL test data with 20 observations a
 
 ```{r}
 myTest <- testing[, nms]
-hasil <- predict(modelRF, myTest)
-print(hasil)
+testPredict <- predict(modelRF, myTest)
+print(testPredict)
 ```
 
-After applying to the coursera quiz section, I achieved 100% correct answer using `modelRF`, which is a good sign.
-
+After applying to the coursera quiz section, I achieved 100% correct answer using `modelRF`, which is a good sign. Also the based on our accuracy calculation, the out of sample accuracy will probably be high around more than 95%. 
 
 

@@ -1866,12 +1866,12 @@ print(results)</code></pre>
 <p>Based on our analysis, Random Forests seems to give the best accuracy, which guesses at an almost 100% rate accuracy, followed by K-nearest neighbors classifier. Out of the list of options, we can choose random forests approach because of the high accuracy.</p>
 <p>Now lets apply the prediction model to our REAL test data with 20 observations and check the results. Don’t forget the <code>nms</code> variable we created earlier and apply it to our test data, so that it have the same column name as the training data.</p>
 <pre class="r"><code>myTest &lt;- testing[, nms]
-hasil &lt;- predict(modelRF, myTest)
-print(hasil)</code></pre>
+testPredict &lt;- predict(modelRF, myTest)
+print(testPredict)</code></pre>
 <pre><code>##  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 
 ##  B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
 ## Levels: A B C D E</code></pre>
-<p>After applying to the coursera quiz section, I achieved 100% correct answer using <code>modelRF</code>, which is a good sign.</p>
+<p>After applying to the coursera quiz section, I achieved 100% correct answer using <code>modelRF</code>, which is a good sign. Also the based on our accuracy calculation, the out of sample accuracy will probably be high around more than 95%.</p>
 </div>
 
 
