@@ -89,8 +89,10 @@ Since the last names on the training data is `classe`, we should remove it from 
 ```{r}
 nms <- names(myTrain)
 nms <- nms[1:length(nms)-1]
+print(nms)
 ```
 
+According to the assignment, we are asked to use `accelerometers`, `gyroscope`, and possibly other variable to predict `classe.` So for this analysis we'll use all the variable in the nms to predict `classe`.
 
 ## Creating a Model 
 
